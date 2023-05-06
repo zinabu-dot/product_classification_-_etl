@@ -40,28 +40,63 @@ AppendToLog("Connected!")
     i.e.: Extract data 
 """
 
-maxId = pd.read_sql_query("Select MAX(TransactionId) FROM Taxonomy", conn)
-maxVal = maxId.iloc[0,0]
+########################################################################
+################## Check if table exists  ##############################
+table_exists = False
+if curr.tables(table='Taxonomy', tabletype='TABLE').fetchone():
+    table_exists = True
 
-"""
-    select description of daily purchased products, their unique ids from TransactionInvoiceLines for prediction
-"""
-Invoicelines = pd.read_sql_query(f'''Select TransactionId, Description, 
-                                     Type FROM TransactionInvoiceLines 
-                                     WHERE TransactionId > {maxVal}''', 
-                                     conn)  
-Invoicelines = Invoicelines.sort_values(by = ['TransactionId']) # Invoicelines.loc[Invoicelines['TransactionId'] > maxVal]
+    maxId = pd.read_sql_query("Select MAX(TransactionId) FROM Taxonomy", conn)
+    maxVal = maxId.iloc[0,0]
 
-""" We need to filter on transactions paid (not on attempts and declined ones) 
-    from another table called Transactions 
-"""
-Transactions = pd.read_sql_query(f"""Select Id, 
-                               TransactionStart, State 
-                               FROM Transactions 
-                               WHERE Id > {maxVal}""", 
-                               conn2)  # 
-Transactions = Transactions.sort_values(by = ['Id']) # Transactions.loc[Transactions['Id'] > maxVal]                              
+    """
+        select description of daily purchased products, their unique ids from TransactionInvoiceLines for prediction
+    """
+    Invoicelines = pd.read_sql_query(f'''Select TransactionId, Description, 
+                                        Type FROM TransactionInvoiceLines 
+                                        WHERE TransactionId > {maxVal}''', 
+                                        conn)  
+    Invoicelines = Invoicelines.sort_values(by = ['TransactionId']) # Invoicelines.loc[Invoicelines['TransactionId'] > maxVal]
 
+    """ We need to filter on transactions paid (not on attempts and declined ones) 
+        from another table called Transactions 
+    """
+    Transactions = pd.read_sql_query(f"""Select Id, 
+                                TransactionStart, State 
+                                FROM Transactions 
+                                WHERE Id > {maxVal}""", 
+                                conn)  # 
+    Transactions = Transactions.sort_values(by = ['Id']) # Transactions.loc[Transactions['Id'] > maxVal] 
+
+
+################## if it does not exist, create table ################
+if not table_exists:
+    curr.execute('''
+                     CREATE TABLE Taxonomy(
+                            TransactionId VARCHAR(255),
+                            Description TEXT,
+                            Type VARCHAR(100),
+                            TransactionStart DATE,
+                            State int,
+                            ProductLabel TEXT)
+                     ''') 
+    
+    Invoicelines = pd.read_sql_query(f'''Select TransactionId, Description, 
+                                        Type FROM TransactionInvoiceLines 
+                                        ''', 
+                                        conn)  
+    Invoicelines = Invoicelines.sort_values(by = ['TransactionId']) # Invoicelines.loc[Invoicelines['TransactionId'] > maxVal]
+
+    """ We need to filter on transactions paid (not on attempts and declined ones) 
+        from another table called Transactions 
+    """
+    Transactions = pd.read_sql_query(f"""Select Id, 
+                                TransactionStart, State 
+                                FROM Transactions 
+                                """, 
+                                conn)  # 
+    Transactions = Transactions.sort_values(by = ['Id']) # Transactions.loc[Transactions['Id'] > maxVal] 
+                          
 
 """ Now combine the invoiceline data and transaction (with status of transactions) data"""
 def data_filter(data1, data2):
@@ -71,14 +106,14 @@ def data_filter(data1, data2):
     
     return prod_Line
 
-logFile("data pulling initiated!")   
+AppendToLog("data pulling initiated!")   
 prod_Line = data_filter(Invoicelines, Transactions)
 
 # removing numbers
 prod_Line["Description"] = prod_Line["Description"].str.replace('\d+','')  
 prod_Line.dropna(subset = "Description", inplace=True)
 
-AppendToLog("data pulled and cleansed!")   
+AppendToLog("data pulled and cleansed!")
 
 # Loading the saved model
 AppendToLog("Reading a pickle model/file!")   
@@ -97,25 +132,6 @@ AppendToLog("product class prediction made and result appended to a dataframe an
 print(prod_Line.head())
                
 # Load (L) to the database
-########################################################################
-################## Check if table exists  ##############################
-table_exists = False
-if curr.tables(table='Taxonomy', tabletype='TABLE').fetchone():
-    table_exists = True
-
-################## if it does not exist, create table ################
-if not table_exists:
-    curr.execute('''
-                     CREATE TABLE Taxonomy(
-                         TransactionId VARCHAR(255),
-                         Description TEXT,
-                         Type VARCHAR(100),
-                          TransactionStart DATE,
-                         State int,
-                         ProductLabel TEXT)
-                     ''')  
-##########################################################################
-
 
 ##############  Insert data into the table  #######################       
 def insert_dataframe(data):
