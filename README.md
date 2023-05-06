@@ -14,7 +14,7 @@ The provided Jupyter notebook imports data from a cloud database containing info
 #
 3. _ETL_pipeline.py
 
-TThe Python code is linked to a database that has an ETL table called Taxonomy, used to store extracted and transformed data. The script checks for the existence of the Taxonomy table and fetches data from Invoicelines and Transaction tables filtered by the maximum id value of the Taxonomy table, which ensures incremental ETL. If the table doesn't exist, the Taxonomy table is created and data is selected from other tables for label prediction. 
+The Python code is linked to a database that has an ETL table called Taxonomy, used to store extracted and transformed data. The script checks for the existence of the Taxonomy table and fetches data from Invoicelines and Transaction tables filtered by the maximum id value of the Taxonomy table, which ensures incremental ETL. If the table doesn't exist, the Taxonomy table is created and data is selected from other tables for label prediction. 
 
 The saved classification model (pickle object) is loaded to predict the label of newly added products, and the predicted labels with additional features are stored in a database for future use.
 
