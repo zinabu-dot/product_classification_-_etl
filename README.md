@@ -3,7 +3,7 @@
 This repository offers product classification task and data pipeline (ETL -> Extract, Transform, Load).
 #   
 Underneath, there is a description of the purpose of each file.
-
+#
 1. db_connection.py
 
 In this file, definitions for tasks such as establishing a database connection and adding entries to log files are provided. While it is not obligatory to execute this file, the functions were imported as modules in the specified files underneath.
